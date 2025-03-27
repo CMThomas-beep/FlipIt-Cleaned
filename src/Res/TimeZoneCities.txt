@@ -1,0 +1,11 @@
+; Generated time zone cities data
+Eastern Standard Time=New York,Detroit,Toronto,Lima
+Pacific Standard Time=Los Angeles,Vancouver,Tijuana
+Central Standard Time=Chicago,Mexico City,Winnipeg
+Mountain Standard Time=Denver,Phoenix,Edmonton
+GMT Standard Time=London,Dublin,Lisbon
+Central European Standard Time=Paris,Berlin,Rome,Madrid,Amsterdam
+Eastern European Standard Time=Athens,Helsinki,Bucharest,Cairo
+China Standard Time=Beijing,Hong Kong,Shanghai
+Tokyo Standard Time=Tokyo,Osaka,Seoul
+Australia Eastern Standard Time=Sydney,Melbourne,Brisbane
