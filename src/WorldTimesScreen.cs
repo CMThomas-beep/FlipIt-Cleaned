@@ -19,8 +19,8 @@ namespace ScreenSaver
         private Font _largeFont;
         private Font _smallFont;
 
-        private Font LargeFont => _largeFont ?? (_largeFont = new Font(FontFamily,  _boxSize.Height.Percent(80), FontStyle.Regular, GraphicsUnit.Pixel));
-        private Font SmallFont => _smallFont ?? (_smallFont = new Font(FontFamily, _boxSize.Height.Percent(25), FontStyle.Regular, GraphicsUnit.Pixel));
+        private Font LargeFont => _largeFont ??= new Font(FontFamily, _boxSize.Height.Percent(80), FontStyle.Regular, GraphicsUnit.Pixel);
+        private Font SmallFont => _smallFont ??= new Font(FontFamily, _boxSize.Height.Percent(25), FontStyle.Regular, GraphicsUnit.Pixel);
 
         private const int DayIndicatorLength = 3;
         private const int MaxBoxHeight = 160;
@@ -30,7 +30,7 @@ namespace ScreenSaver
         private const int VerticalGapBetweenBoxesPercent = 10;
 
         private int _maxNameLengthInChars;
-        private int _timeLengthInChars;  // including optional am/pm indicator and * for DST.
+        private int _timeLengthInChars;
         private Size _boxSize;
         private int _horizontalGap;
         private int _verticalGap;
@@ -47,15 +47,15 @@ namespace ScreenSaver
             CalculateTimeCharCount();
             CalculateLayout();
         }
-        
+
         private void CalculateTimeCharCount()
         {
-            // 12hr:    London  11:59:59 PM*
-            // 24hr:    London  23:59:59*
             var timeLength = DateTime.Now.ToString("HH:mm").Length;
             _timeLengthInChars = timeLength;
+
             if (_displayDstIndicator)
-                _timeLengthInChars += 1;
+                _timeLengthInChars++;
+
             if (!_display24HourTime)
                 _timeLengthInChars += 3;
         }
@@ -67,9 +67,9 @@ namespace ScreenSaver
 
             var maxWidth = _form.Width - 40; // leave some margin
             var maxHeight = _form.Height - 40;
-            
-            var candidateBoxWidth = CalcBoxSize(maxWidth, 0, rowLengthInChars, HorizontalGapBetweenBoxesPercent/100.0);
-            var candidateBoxHeight = CalcBoxSize(maxHeight, 0, _cities.Count, VerticalGapBetweenBoxesPercent/100.0);
+
+            var candidateBoxWidth = CalcBoxSize(maxWidth, 0, rowLengthInChars, HorizontalGapBetweenBoxesPercent / 100.0);
+            var candidateBoxHeight = CalcBoxSize(maxHeight, 0, _cities.Count, VerticalGapBetweenBoxesPercent / 100.0);
             var boxHeightIfUsingWidth = candidateBoxWidth.PercentInv(BoxWidthPercentage);
             var boxHeight = Math.Min(candidateBoxHeight, boxHeightIfUsingWidth);
             boxHeight = Math.Min(boxHeight, MaxBoxHeight);
@@ -80,7 +80,7 @@ namespace ScreenSaver
 
             var heightForAllRows = CalcSize(_cities.Count, _boxSize.Height, _verticalGap);
             _startingY = (_form.Height - heightForAllRows) / 2;
-            
+
             var rowWidth = CalcSize(rowLengthInChars, _boxSize.Width, _horizontalGap);
             _startingX = (_form.Width - rowWidth) / 2;
         }
@@ -99,8 +99,8 @@ namespace ScreenSaver
             foreach (var city in _cities.OrderBy(c => c.CurrentTime))
             {
                 city.RefreshTime(SystemTime.Now);
-                var s = city.DisplayName.PadRight(_maxNameLengthInChars + 2) + FormatTime(city);
-                DrawRow(_startingX, y, _boxSize, _horizontalGap, s);
+                var timeString = city.DisplayName.PadRight(_maxNameLengthInChars + 2) + FormatTime(city);
+                DrawRow(_startingX, y, _boxSize, _horizontalGap, timeString);
                 y += _boxSize.Height + _verticalGap;
             }
         }
@@ -137,7 +137,6 @@ namespace ScreenSaver
         private void DrawBox(Rectangle box)
         {
             var radius = box.Height / 20;
-
             var path = RoundedRectangle.Create(box, radius);
             Gfx.DrawPath(_cityBoxPen, path);
             Gfx.FillPath(_backFillTop, path);
@@ -150,9 +149,7 @@ namespace ScreenSaver
 
             DrawHalfBox(halfRectangle, radius, RectangleCorners.TopLeft | RectangleCorners.TopRight, topString);
 
-            // Move the rect down
-            halfRectangle.Y = halfRectangle.Y + halfRectangle.Height + 1;
-
+            halfRectangle.Y += halfRectangle.Height + 1;
             DrawHalfBox(halfRectangle, radius, RectangleCorners.BottomLeft | RectangleCorners.BottomRight, bottomString);
         }
 
@@ -161,7 +158,7 @@ namespace ScreenSaver
             var path = RoundedRectangle.Create(halfRectangle, radius, corners);
             Gfx.DrawPath(_cityBoxPen, path);
             Gfx.FillPath(_backFillTop, path);
-            if (!String.IsNullOrEmpty(s))
+            if (!string.IsNullOrEmpty(s))
             {
                 DrawString(s, SmallFont, halfRectangle);
             }
@@ -169,11 +166,14 @@ namespace ScreenSaver
 
         private void DrawString(string s, Font font, Rectangle box)
         {
-            var stringFormat = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
+            var stringFormat = new StringFormat
+            {
+                Alignment = StringAlignment.Center,
+                LineAlignment = StringAlignment.Center
+            };
 
-            // Hacky adjustment to center the text in the box
+            // Adjust to center text vertically in the box
             var yOffset = box.Height.Percent(5);
-
             var textRect = new Rectangle(box.X, box.Y + yOffset, box.Width, box.Height);
             Gfx.DrawString(s, font, FontBrush, textRect, stringFormat);
         }
@@ -185,31 +185,25 @@ namespace ScreenSaver
 
         private string FormatTime(Location location)
         {
-            // 12hr:    London  11:59:59 PM* MON
-            // 24hr:    London  23:59:59* MON
-
             var formatString = $"{{0, {_timeLengthInChars}}}";
 
             if (location.HasError)
             {
-                return "Error".PadRight(_timeLengthInChars) + new String(' ', DayIndicatorLength + 1);
+                return "Error".PadRight(_timeLengthInChars) + new string(' ', DayIndicatorLength + 1);
             }
 
-            var dst = "";
-            if (_displayDstIndicator)
-                dst = location.IsDaylightSavingTime ? "*" : " ";
-
-            var daySuffix = location.DaysDifference != 0
-                ? location.CurrentTime.ToString("ddd")
-                : "   ";
+            var dstIndicator = _displayDstIndicator ? (location.IsDaylightSavingTime ? "*" : " ") : "";
+            var daySuffix = location.DaysDifference != 0 ? location.CurrentTime.ToString("ddd") : "   ";
             if (daySuffix.Length != DayIndicatorLength)
+            {
                 daySuffix = FixStringLength(daySuffix, DayIndicatorLength);
+            }
 
-            var timePart = !_display24HourTime 
-                ? $"{location.CurrentTime:h:mm} {FormatAmPm(location.CurrentTime)}{dst}" 
-                : $"{location.CurrentTime:HH:mm}{dst}";
+            var timePart = !_display24HourTime
+                ? $"{location.CurrentTime:h:mm} {FormatAmPm(location.CurrentTime)}{dstIndicator}"
+                : $"{location.CurrentTime:HH:mm}{dstIndicator}";
 
-            return String.Format(formatString, timePart) + " " + daySuffix;
+            return string.Format(formatString, timePart) + " " + daySuffix;
         }
 
         private string FixStringLength(string s, int length, bool padRight = true)
@@ -218,9 +212,7 @@ namespace ScreenSaver
                 return new string(' ', length);
             if (s.Length == length)
                 return s;
-            return s.Length > length 
-                ? s.Substring(0, length) 
-                : padRight ? s.PadRight(length) : s.PadLeft(length);
+            return s.Length > length ? s.Substring(0, length) : padRight ? s.PadRight(length) : s.PadLeft(length);
         }
 
         protected override byte[] GetFontResource()

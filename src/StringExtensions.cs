@@ -6,7 +6,7 @@ namespace ScreenSaver
     {
         internal static bool HasSameText(this string value, string otherValue)
         {
-            return String.Equals(value, otherValue, StringComparison.InvariantCultureIgnoreCase);
+            return string.Equals(value, otherValue, StringComparison.InvariantCultureIgnoreCase);
         }
     }
 }
